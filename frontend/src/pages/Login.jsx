@@ -40,7 +40,15 @@ const Login = () => {
             };
             navigate(roleRedirects[res.data.user.role] || '/dashboard');
         } catch (err) {
-            setError(err.response?.data?.msg || 'An error occurred. Please check your credentials.');
+            const serverMsg = err.response?.data?.msg;
+            const status = err.response?.status;
+            const networkMsg = err.message;
+            setError(
+                serverMsg
+                    ? `Error (${status}): ${serverMsg}`
+                    : `Network error: ${networkMsg}. Make sure backend URL is set and reachable.`
+            );
+            console.error('Login/register error details:', err);
         } finally {
             setLoading(false);
         }

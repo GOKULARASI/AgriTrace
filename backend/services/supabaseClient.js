@@ -5,9 +5,13 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-    console.warn('Missing SUPABASE_URL or SUPABASE_KEY in environment variables.');
+    const missing = [];
+    if (!supabaseUrl) missing.push('SUPABASE_URL');
+    if (!supabaseKey) missing.push('SUPABASE_KEY');
+    console.error(`Missing required Supabase env vars: ${missing.join(', ')}`);
+    throw new Error(`Missing required Supabase env vars: ${missing.join(', ')}`);
 }
 
-const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder');
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 module.exports = supabase;

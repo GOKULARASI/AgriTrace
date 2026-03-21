@@ -5,7 +5,7 @@ import axios from "axios";
 // 👉 IMPORTANT: include /api here
 const API_BASE =
   import.meta.env.VITE_API_URL ||
-  "https://agritrace-2qjx.onrender.com/api/auths";
+  "https://agritrace-2qjx.onrender.com";
 
 console.log("API_BASE =", API_BASE);
 

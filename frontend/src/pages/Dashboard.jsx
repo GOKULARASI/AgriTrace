@@ -35,7 +35,7 @@ const Dashboard = () => {
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/api/supplychain');
+            const res = await api.get('supplychain');
             setProducts(res.data);
         } catch (err) {
             console.error(err);
@@ -47,7 +47,7 @@ const Dashboard = () => {
     const handleAction = async (endpoint, payload) => {
         console.log('Action payload:', payload);
         try {
-            const res = await api.post(`/api/supplychain${endpoint}`, payload);
+            const res = await api.post(`supplychain${endpoint}`, payload);
             console.log('Action successful:', res.data);
             alert(`Success: ${res.data.msg || 'Action successful!'}`);
             fetchProducts();

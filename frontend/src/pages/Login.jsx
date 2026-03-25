@@ -24,7 +24,7 @@ const Login = () => {
         setLoading(true);
         setError('');
         try {
-            const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+            const endpoint = isLogin ? 'auth/login' : 'auth/register';
             const res = await api.post(endpoint, formData);
             localStorage.setItem('token', res.data.token);
             login(res.data);

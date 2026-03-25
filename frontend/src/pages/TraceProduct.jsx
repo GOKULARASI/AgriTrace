@@ -26,7 +26,7 @@ const TraceProduct = () => {
         const fetchTrace = async () => {
             setLoading(true);
             try {
-                const res = await api.get(`/api/supplychain/trace/${batchId}`);
+                const res = await api.get(`supplychain/trace/${batchId}`);
                 setData(res.data);
             } catch (err) {
                 setError(err.response?.data?.msg || 'Product not found');

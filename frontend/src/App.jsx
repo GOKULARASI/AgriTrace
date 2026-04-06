@@ -7,6 +7,7 @@ import TraceProduct from './pages/TraceProduct';
 import QRScanner from './pages/QRScanner';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
+import ConsumerFeedback from './pages/ConsumerFeedback';
 import Layout from './components/Layout';
 import { useContext } from 'react';
 
@@ -77,6 +78,16 @@ function App() {
                 <AuthContext.Consumer>
                   {({ user }) => (
                     user ? <Layout><TraceProduct /></Layout> : <TraceProduct />
+                  )}
+                </AuthContext.Consumer>
+              } 
+            />
+            <Route 
+              path="/feedback" 
+              element={
+                <AuthContext.Consumer>
+                  {({ user }) => (
+                    user ? <Layout><ConsumerFeedback /></Layout> : <ConsumerFeedback />
                   )}
                 </AuthContext.Consumer>
               } 

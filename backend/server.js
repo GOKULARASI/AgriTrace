@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const supplyChainRoutes = require('./routes/supplychain');
+const feedbackRoutes = require('./routes/feedbackRoutes');
 
 const app = express();
 app.use(cors());
@@ -12,6 +13,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/supplychain', supplyChainRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Basic root response so GET / doesn’t return cannot GET
 app.get('/', (req, res) => {

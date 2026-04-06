@@ -2,7 +2,7 @@
 -- Copy and run this in your Supabase SQL Editor
 
 -- Create users table
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE users (
 );
 
 -- Create products table
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   product_id TEXT UNIQUE NOT NULL,
   crop_name TEXT NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE products (
 );
 
 -- Create transactions table
-CREATE TABLE transactions (
+CREATE TABLE IF NOT EXISTS transactions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   transaction_id TEXT UNIQUE NOT NULL,
   farmer_id UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -36,5 +36,21 @@ CREATE TABLE transactions (
   amount NUMERIC NOT NULL,
   type TEXT,
   payment_method TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, NOW())
+);
+
+-- Create feedbacks table
+CREATE TABLE IF NOT EXISTS feedbacks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  product_id TEXT NOT NULL,
+  qr_verified BOOLEAN DEFAULT true,
+  quality_rating INTEGER CHECK (quality_rating >= 1 AND quality_rating <= 5),
+  trust_rating INTEGER CHECK (trust_rating >= 1 AND trust_rating <= 5),
+  access_ease_rating INTEGER CHECK (access_ease_rating >= 1 AND access_ease_rating <= 5),
+  experience_rating INTEGER CHECK (experience_rating >= 1 AND experience_rating <= 5),
+  issues TEXT,
+  suggestions TEXT,
+  overall_rating INTEGER CHECK (overall_rating >= 1 AND overall_rating <= 5),
+  contact_info TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, NOW())
 );

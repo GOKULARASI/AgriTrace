@@ -233,6 +233,22 @@ const TraceProduct = () => {
                 </div>
             )}
 
+            <div className="mt-16 bg-emerald-50 rounded-3xl p-8 border border-emerald-100 text-center shadow-lg shadow-emerald-100/50">
+                <div className="inline-flex bg-emerald-100 text-emerald-600 p-4 rounded-full mb-4">
+                    <Star size={32} />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">We value your opinion!</h3>
+                <p className="text-emerald-700/80 font-medium mb-6 max-w-lg mx-auto">
+                    Help us maintain transparency and quality. Share your experience with this product to improve agricultural traceability.
+                </p>
+                <button 
+                    onClick={() => navigate(`/feedback?productId=${product.product_id || product.productId || batch}`)} 
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-emerald-600/30 transition-all hover:-translate-y-1"
+                >
+                    Share Feedback
+                </button>
+            </div>
+
             <footer className="mt-20 pt-10 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6 opacity-60">
                 <div className="flex items-center gap-3">
                     <ShieldCheck className="text-green-600" />

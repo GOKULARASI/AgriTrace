@@ -7,7 +7,7 @@ import TraceProduct from './pages/TraceProduct';
 import QRScanner from './pages/QRScanner';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
-import ConsumerFeedback from './pages/ConsumerFeedback';
+import ProductTracking from './pages/ProductTracking';
 import Layout from './components/Layout';
 import { useContext } from 'react';
 
@@ -88,6 +88,26 @@ function App() {
                 <AuthContext.Consumer>
                   {({ user }) => (
                     user ? <Layout><ConsumerFeedback /></Layout> : <ConsumerFeedback />
+                  )}
+                </AuthContext.Consumer>
+              } 
+            />
+            <Route 
+              path="/track" 
+              element={
+                <AuthContext.Consumer>
+                  {({ user }) => (
+                    user ? <Layout><ProductTracking /></Layout> : <ProductTracking />
+                  )}
+                </AuthContext.Consumer>
+              } 
+            />
+            <Route 
+              path="/track/:batchId" 
+              element={
+                <AuthContext.Consumer>
+                  {({ user }) => (
+                    user ? <Layout><ProductTracking /></Layout> : <ProductTracking />
                   )}
                 </AuthContext.Consumer>
               } 

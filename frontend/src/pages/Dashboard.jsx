@@ -24,18 +24,20 @@ import {
 const Dashboard = () => {
     const { user, logout } = useContext(AuthContext);
     const [products, setProducts] = useState([]);
+    const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState({});
     const [activeTab, setActiveTab] = useState('overview');
 
     useEffect(() => {
         fetchProducts();
+        fetchActivities();
     }, []);
 
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            const res = await api.get('supplychain');
+            const res = await api.get('tracking');
             setProducts(res.data);
         } catch (err) {
             console.error(err);
@@ -44,14 +46,40 @@ const Dashboard = () => {
         }
     };
 
-    const handleAction = async (endpoint, payload) => {
+    const fetchActivities = async () => {
+        try {
+            const res = await api.get('tracking/activity');
+            setActivities(res.data);
+        } catch (err) {
+            console.error('Activity fetch error:', err);
+        }
+    };
+
+    const handleAction = async (endpoint, payload, isTracking = false) => {
+        // Simple client-side validation
+        if (isTracking) {
+            if (!payload.productId && !endpoint.includes('create')) {
+                alert('Product ID is required');
+                return;
+            }
+        }
+
         console.log('Action payload:', payload);
         try {
-            const res = await api.post(`supplychain${endpoint}`, payload);
+            const base = isTracking ? 'tracking' : 'supplychain';
+            const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+            const targetUrl = `${base}${cleanEndpoint}`;
+            
+            const method = (isTracking && !endpoint.includes('create')) ? 'put' : 'post';
+            
+            const res = await api[method](targetUrl, payload);
             console.log('Action successful:', res.data);
             alert(`Success: ${res.data.msg || 'Action successful!'}`);
             fetchProducts();
-            setFormData({}); // Clear form data on success to prevent accidental duplicate submission
+            fetchActivities();
+            
+            // Clear form data after success
+            if (isTracking) setFormData({}); 
         } catch (err) {
             console.error('Action error:', err);
             const errorMsg = err.response?.data?.msg || err.message || 'Error occurred';
@@ -61,10 +89,12 @@ const Dashboard = () => {
 
     const StatusBadge = ({ status }) => {
         const styles = {
-            'Created': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+            'Sown': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+            'Harvested': 'bg-green-100 text-green-700 border-green-200',
             'Processed': 'bg-blue-100 text-blue-700 border-blue-200',
+            'Packed': 'bg-indigo-100 text-indigo-700 border-indigo-200',
             'Shipped': 'bg-amber-100 text-amber-700 border-amber-200',
-            'Received': 'bg-purple-100 text-purple-700 border-purple-200'
+            'Delivered': 'bg-purple-100 text-purple-700 border-purple-200'
         };
         return (
             <span className={`px-3 py-1 text-xs font-bold rounded-full border ${styles[status] || 'bg-gray-100 text-gray-700'}`}>
@@ -97,35 +127,56 @@ const Dashboard = () => {
             <>
                 {/* Role Specific Forms */}
                 {role === 'Farmer' && (
-                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-10 group hover:shadow-xl hover:shadow-green-500/5 transition-all duration-300">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="bg-green-100 p-3 rounded-2xl text-green-600">
-                                <Plus size={24} />
+                    <div className="space-y-6">
+                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 group hover:shadow-xl hover:shadow-green-500/5 transition-all duration-300">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="bg-green-100 p-3 rounded-2xl text-green-600">
+                                    <Plus size={24} />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800">1. Initialize Sowing</h3>
                             </div>
-                            <h3 className="text-xl font-bold text-gray-800">Register New Harvest</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Product ID</label>
+                                    <input type="text" placeholder="e.g. PRD-001" onChange={e => setFormData({ ...formData, productId: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-green-500 transition-colors font-medium" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Product Name</label>
+                                    <input type="text" placeholder="e.g. Organic Wheat" onChange={e => setFormData({ ...formData, productName: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-green-500 transition-colors font-medium" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Date of Sowing</label>
+                                    <input type="date" onChange={e => setFormData({ ...formData, dateOfSowing: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-green-500 transition-colors font-medium" />
+                                </div>
+                            </div>
+                            <button onClick={() => handleAction('create', { productId: formData.productId, productName: formData.productName, dateOfSowing: formData.dateOfSowing }, true)} className="mt-8 bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-green-600/20 flex items-center gap-2 group">
+                                Start Tracking
+                                <ArrowUpRight size={18} />
+                            </button>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Product ID</label>
-                                <input type="number" placeholder="e.g. 101" onChange={e => setFormData({ ...formData, productId: Number(e.target.value) })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-green-500 transition-colors font-medium" />
+
+                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 group hover:shadow-xl hover:shadow-emerald-500/5 transition-all duration-300">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="bg-emerald-100 p-3 rounded-2xl text-emerald-600">
+                                    <CheckCircle2 size={24} />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800">2. Log Harvesting</h3>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Crop Name</label>
-                                <input type="text" placeholder="e.g. Organic Tomatoes" onChange={e => setFormData({ ...formData, cropName: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-green-500 transition-colors font-medium" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Product ID</label>
+                                    <input type="text" placeholder="Enter ID" onChange={e => setFormData({ ...formData, productId: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors font-medium" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Date of Harvesting</label>
+                                    <input type="date" onChange={e => setFormData({ ...formData, dateOfHarvesting: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors font-medium" />
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Quantity</label>
-                                <input type="text" placeholder="e.g. 500kg" onChange={e => setFormData({ ...formData, quantityText: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-green-500 transition-colors font-medium" />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Origin Location</label>
-                                <input type="text" placeholder="e.g. Erode, TN" onChange={e => setFormData({ ...formData, farmerLocation: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-green-500 transition-colors font-medium" />
-                            </div>
+                            <button onClick={() => handleAction(`${formData.productId}/harvest`, { dateOfHarvesting: formData.dateOfHarvesting }, true)} className="mt-8 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-emerald-600/20 flex items-center gap-2 group">
+                                Update Harvest
+                                <ArrowUpRight size={18} />
+                            </button>
                         </div>
-                        <button onClick={() => handleAction('/add', formData)} className="mt-8 bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-green-600/20 flex items-center gap-2 group">
-                            Secure to Blockchain
-                            <ArrowUpRight size={18} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                        </button>
                     </div>
                 )}
 
@@ -135,21 +186,25 @@ const Dashboard = () => {
                             <div className="bg-blue-100 p-3 rounded-2xl text-blue-600">
                                 <RefreshCcw size={24} />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-800">Process Industry Batch</h3>
+                            <h3 className="text-xl font-bold text-gray-800">Processing & Packing Updates</h3>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Target Product ID</label>
-                                <input type="number" placeholder="Enter ID" onChange={e => setFormData({ ...formData, targetId: Number(e.target.value) })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-blue-500 transition-colors font-medium" />
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Product ID</label>
+                                <input type="text" placeholder="Enter ID" onChange={e => setFormData({ ...formData, productId: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-blue-500 transition-colors font-medium" />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Assigned Batch ID</label>
-                                <input type="text" placeholder="e.g. TS2026-101" onChange={e => setFormData({ ...formData, batchId: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-blue-500 transition-colors font-medium" />
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Date of Processing</label>
+                                <input type="date" onChange={e => setFormData({ ...formData, dateOfProcessing: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-blue-500 transition-colors font-medium" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Date of Packing</label>
+                                <input type="date" onChange={e => setFormData({ ...formData, dateOfPacking: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-blue-500 transition-colors font-medium" />
                             </div>
                         </div>
-                        <button onClick={() => handleAction(`/process/${formData.targetId}`, { batchId: formData.batchId })} className="mt-8 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2 group">
-                            Verify & Generate QR
-                            <QrCode size={18} className="group-hover:scale-110 transition-transform" />
+                        <button onClick={() => handleAction(`${formData.productId}/industry`, { dateOfProcessing: formData.dateOfProcessing, dateOfPacking: formData.dateOfPacking }, true)} className="mt-8 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2 group">
+                            Update Industry Stage
+                            <QrCode size={18} />
                         </button>
                     </div>
                 )}
@@ -160,15 +215,25 @@ const Dashboard = () => {
                             <div className="bg-amber-100 p-3 rounded-2xl text-amber-600">
                                 <Truck size={24} />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-800">Logistics Update</h3>
+                            <h3 className="text-xl font-bold text-gray-800">Logistics & Shipping Updates</h3>
                         </div>
-                        <div className="space-y-2 max-w-md">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Product ID to Ship</label>
-                            <input type="number" placeholder="Enter ID" onChange={e => setFormData({ ...formData, targetId: Number(e.target.value) })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-amber-500 transition-colors font-medium" />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Product ID</label>
+                                <input type="text" placeholder="Enter ID" onChange={e => setFormData({ ...formData, productId: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-amber-500 transition-colors font-medium" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Date of Shipping</label>
+                                <input type="date" onChange={e => setFormData({ ...formData, dateOfShipping: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-amber-500 transition-colors font-medium" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Date of Delivery</label>
+                                <input type="date" onChange={e => setFormData({ ...formData, dateOfDelivery: e.target.value })} className="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-amber-500 transition-colors font-medium" />
+                            </div>
                         </div>
-                        <button onClick={() => handleAction(`/ship/${formData.targetId}`, {})} className="mt-8 bg-amber-500 hover:bg-amber-600 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-amber-600/20 flex items-center gap-2 group">
-                            Mark Out for Delivery
-                            <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        <button onClick={() => handleAction(`${formData.productId}/transport`, { dateOfShipping: formData.dateOfShipping, dateOfDelivery: formData.dateOfDelivery }, true)} className="mt-8 bg-amber-500 hover:bg-amber-600 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-amber-600/20 flex items-center gap-2 group">
+                            Update Logistics
+                            <ChevronRight size={18} />
                         </button>
                     </div>
                 )}
@@ -282,9 +347,9 @@ const Dashboard = () => {
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">In Transit</p>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">In Progress</p>
                     <div className="flex items-end justify-between mt-2">
-                        <h4 className="text-3xl font-black text-gray-900">{products.filter(p => p.currentStatus === 'Shipped').length}</h4>
+                        <h4 className="text-3xl font-black text-gray-900">{products.filter(p => !['Delivered'].includes(p.status)).length}</h4>
                         <div className="bg-amber-50 text-amber-600 text-[10px] font-bold px-2 py-1 rounded-full">Active</div>
                     </div>
                 </div>
@@ -342,43 +407,35 @@ const Dashboard = () => {
                                                     <Package size={20} />
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-bold text-gray-900">{p.cropName || 'Unknown Crop'}</p>
+                                                    <p className="text-sm font-bold text-gray-900">{p.productName || 'Unknown Product'}</p>
                                                     <p className="text-[10px] font-mono text-gray-400 mt-0.5">ID: {p.productId}</p>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-6 text-sm">
                                             <div className="space-y-1">
-                                                <p className="text-gray-600 font-medium">{p.quantityText}</p>
+                                                <p className="text-gray-600 font-medium">Farmer: {p.farmerName}</p>
                                                 <p className="flex items-center text-gray-400 text-xs gap-1">
-                                                    <Clock size={12} /> {p.farmerLocation}
+                                                    <Clock size={12} /> Last update: {new Date(p.updatedAt).toLocaleDateString()}
                                                 </p>
                                             </div>
                                         </td>
                                         <td className="px-6 py-6">
-                                            {p.qrCodeUrl ? (
-                                                <div className="relative group/qr">
-                                                    <div className="p-1 bg-white border rounded flex items-center justify-center w-12 h-12 shadow-sm group-hover/qr:scale-150 group-hover/qr:shadow-2xl transition-all duration-300 z-10 bg-white origin-left cursor-zoom-in">
-                                                        <QRCodeSVG value={p.qrCodeUrl} size={40} />
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <span className="text-[10px] text-gray-300 font-medium italic">Pending processing</span>
-                                            )}
+                                            <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
+                                                <QrCode size={12} /> Traceable
+                                            </div>
                                         </td>
                                         <td className="px-6 py-6">
-                                            <StatusBadge status={p.currentStatus} />
+                                            <StatusBadge status={p.status} />
                                         </td>
                                         <td className="px-6 py-6 text-right">
-                                            {p.batchId && (
-                                                <Link
-                                                    to={`/trace/${p.batchId}`}
-                                                    className="inline-flex items-center gap-1.5 text-xs font-bold text-green-600 hover:text-green-700 bg-green-50 px-3 py-2 rounded-lg transition-colors"
-                                                >
-                                                    Trace
-                                                    <ExternalLink size={14} />
-                                                </Link>
-                                            )}
+                                            <Link
+                                                to={`/track/${p.productId}`}
+                                                className="inline-flex items-center gap-1.5 text-xs font-bold text-green-600 hover:text-green-700 bg-green-50 px-3 py-2 rounded-lg transition-colors"
+                                            >
+                                                Trace
+                                                <ExternalLink size={14} />
+                                            </Link>
                                         </td>
                                     </tr>
                                 ))}
@@ -396,6 +453,47 @@ const Dashboard = () => {
                     )}
                 </div>
             )}
+
+            {/* Recent Activity Section */}
+            <div className="mt-12">
+                <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-2xl font-bold text-gray-800">System Activity Stream</h3>
+                    <div className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest">Live Audit</div>
+                </div>
+                
+                <div className="space-y-4">
+                    {activities.length > 0 ? (
+                        activities.map((log) => (
+                            <div key={log.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-start gap-4 hover:border-blue-200 transition-colors group">
+                                <div className="bg-gray-50 p-3 rounded-xl text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                                    <Clock size={20} />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm font-bold text-gray-900">{log.action}</p>
+                                        <span className="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                                            log.role === 'Farmer' ? 'bg-green-100 text-green-700' :
+                                            log.role === 'Industry' ? 'bg-blue-100 text-blue-700' :
+                                            'bg-amber-100 text-amber-700'
+                                        }`}>{log.role}</span>
+                                        <p className="text-xs text-gray-500 font-medium">{log.performed_by} • Product ID: <span className="font-mono text-gray-700">{log.product_id}</span></p>
+                                    </div>
+                                </div>
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <CheckCircle2 size={18} className="text-emerald-500" />
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-center py-10 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
+                            <p className="text-gray-400 text-sm font-medium italic">No recent activity detected.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };

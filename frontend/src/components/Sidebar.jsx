@@ -19,8 +19,8 @@ const Sidebar = () => {
 
     const navItems = [
         { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard', roles: ['Admin', 'Farmer', 'Industry', 'Transport', 'Retail'] },
+        { name: 'Product Tracking', icon: <Search size={20} />, path: '/track', roles: ['Admin', 'Farmer', 'Industry', 'Transport', 'Retail', 'Consumer'] },
         { name: 'Scan Product', icon: <QrCode size={20} />, path: '/scan', roles: ['Admin', 'Farmer', 'Industry', 'Transport', 'Retail', 'Consumer'] },
-        { name: 'Trace Details', icon: <Search size={20} />, path: '/trace/1', roles: ['Admin', 'Farmer', 'Industry', 'Transport', 'Retail', 'Consumer'] },
         { name: 'Settings', icon: <Settings size={20} />, path: '/settings', roles: ['Admin'] },
     ];
 

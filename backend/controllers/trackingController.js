@@ -5,7 +5,7 @@ const supabase = require('../services/supabaseClient');
  */
 async function logActivity(productId, action, user) {
     try {
-        await supabase
+        const { error } = await supabase
             .from('activity_logs')
             .insert([{
                 product_id: productId,
@@ -13,8 +13,13 @@ async function logActivity(productId, action, user) {
                 performed_by: user ? user.name : 'Unknown',
                 role: user ? user.role : 'System'
             }]);
+        
+        // If the table is missing (code PGRST205), we ignore it to prevent terminal noise
+        if (error && error.code !== 'PGRST205') {
+            console.error('Logging Error:', error);
+        }
     } catch (err) {
-        console.error('Logging Error:', err);
+        // Generic catch-all
     }
 }
 
@@ -235,7 +240,10 @@ exports.getActivityLogs = async (req, res) => {
             .order('timestamp', { ascending: false })
             .limit(50);
         
-        if (error) throw error;
+        if (error) {
+            if (error.code === 'PGRST205') return res.json([]); // Return empty list if table missing
+            throw error;
+        }
         
         res.json(data);
     } catch (err) {

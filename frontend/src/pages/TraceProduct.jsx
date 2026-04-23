@@ -12,15 +12,53 @@ import {
     ArrowLeft,
     Info,
     Star,
-    Factory
+    Factory,
+    MessageSquare,
+    Send
 } from 'lucide-react';
+import { AuthContext } from '../context/AuthContext';
+
+const StarRating = ({ rating, setRating, label }) => (
+    <div className="flex flex-col space-y-2 w-full">
+        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{label}</span>
+        <div className="flex space-x-1">
+            {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    className={`text-2xl transition-all duration-200 hover:scale-125 focus:outline-none ${
+                        star <= rating ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]' : 'text-gray-200 hover:text-amber-200'
+                    }`}
+                >
+                    ★
+                </button>
+            ))}
+        </div>
+    </div>
+);
 
 const TraceProduct = () => {
     const { batchId } = useParams();
     const navigate = useNavigate();
+    const { user } = React.useContext(AuthContext);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
+    const [feedbackData, setFeedbackData] = useState({
+        qr_verified: true,
+        quality_rating: 0,
+        trust_rating: 0,
+        access_ease_rating: 0,
+        experience_rating: 0,
+        issues: '',
+        suggestions: '',
+        overall_rating: 0,
+        contact_info: ''
+    });
+    const [submittingFeedback, setSubmittingFeedback] = useState(false);
+    const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
     useEffect(() => {
         const fetchTrace = async () => {
@@ -29,13 +67,29 @@ const TraceProduct = () => {
                 const res = await api.get(`supplychain/trace/${batchId}`);
                 setData(res.data);
             } catch (err) {
-                setError(err.response?.data?.msg || 'Product not found');
+                setError(err.response?.data?.msg || 'Product record not found.');
             } finally {
                 setLoading(false);
             }
         };
         fetchTrace();
     }, [batchId]);
+
+    const handleFeedbackSubmit = async (e) => {
+        e.preventDefault();
+        setSubmittingFeedback(true);
+        try {
+            await api.post('/feedback/submit', {
+                ...feedbackData,
+                product_id: product.product_id
+            });
+            setFeedbackSuccess(true);
+        } catch (err) {
+            console.error('Feedback error:', err);
+        } finally {
+            setSubmittingFeedback(false);
+        }
+    };
 
     if (loading) return (
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -161,7 +215,7 @@ const TraceProduct = () => {
                     subtitle="Initial Agricultural Origin"
                     active={true}
                     color="green"
-                    date={product.date}
+                    date={product.date || product.created_at}
                     details={[
                         { label: 'Crop Variety', value: cropName },
                         { label: 'Growth Location', value: farmerLoc },
@@ -233,21 +287,97 @@ const TraceProduct = () => {
                 </div>
             )}
 
-            <div className="mt-16 bg-emerald-50 rounded-3xl p-8 border border-emerald-100 text-center shadow-lg shadow-emerald-100/50">
-                <div className="inline-flex bg-emerald-100 text-emerald-600 p-4 rounded-full mb-4">
-                    <Star size={32} />
+            {/* 5. Consumer Feedback Section - ONLY for Consumers and Guests */}
+            {(!user || user?.user?.role === 'Consumer') && (
+                <div className="mt-16 bg-white rounded-3xl p-8 border border-gray-100 shadow-xl relative overflow-hidden" id="feedback-section">
+                <div className="absolute top-0 right-0 p-8 opacity-[0.03] -mr-8 -mt-8">
+                    <MessageSquare size={200} />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">We value your opinion!</h3>
-                <p className="text-emerald-700/80 font-medium mb-6 max-w-lg mx-auto">
-                    Help us maintain transparency and quality. Share your experience with this product to improve agricultural traceability.
-                </p>
-                <button 
-                    onClick={() => navigate(`/feedback?productId=${product.product_id || product.productId || batch}`)} 
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-emerald-600/30 transition-all hover:-translate-y-1"
-                >
-                    Share Feedback
-                </button>
+                
+                <div className="relative z-10">
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="bg-amber-100 p-3 rounded-2xl text-amber-600">
+                            <Star size={24} fill="currentColor" />
+                        </div>
+                        <div>
+                            <h3 className="text-2xl font-black text-gray-900 tracking-tight">Consumer Experience & Feedback</h3>
+                            <p className="text-gray-500 font-medium italic">Help us maintain blockchain transparency and quality standard</p>
+                        </div>
+                    </div>
+
+                    {feedbackSuccess ? (
+                        <div className="bg-green-50 border border-green-100 rounded-2xl p-8 text-center animate-in zoom-in duration-500">
+                            <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center text-green-600 mx-auto mb-4">
+                                <ShieldCheck size={32} />
+                            </div>
+                            <h4 className="text-xl font-bold text-gray-900 mb-2">Thank you for your feedback!</h4>
+                            <p className="text-green-700 font-medium">Your response has been cryptographically logged to improve the supply chain.</p>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleFeedbackSubmit} className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <StarRating 
+                                    rating={feedbackData.quality_rating} 
+                                    setRating={(val) => setFeedbackData({...feedbackData, quality_rating: val})} 
+                                    label="Product Quality & Freshness" 
+                                />
+                                <StarRating 
+                                    rating={feedbackData.trust_rating} 
+                                    setRating={(val) => setFeedbackData({...feedbackData, trust_rating: val})} 
+                                    label="Trust in Blockchain Records" 
+                                />
+                                <StarRating 
+                                    rating={feedbackData.access_ease_rating} 
+                                    setRating={(val) => setFeedbackData({...feedbackData, access_ease_rating: val})} 
+                                    label="Ease of Traceability Access" 
+                                />
+                                <StarRating 
+                                    rating={feedbackData.experience_rating} 
+                                    setRating={(val) => setFeedbackData({...feedbackData, experience_rating: val})} 
+                                    label="Overall Satisfaction" 
+                                />
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2 px-1">Detailed Review / Issues Encountered</label>
+                                    <textarea 
+                                        className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl focus:border-amber-500 transition-colors font-medium text-gray-700 min-h-[100px] outline-none"
+                                        placeholder="Enter your experience or report any data mismatch..."
+                                        value={feedbackData.issues}
+                                        onChange={e => setFeedbackData({...feedbackData, issues: e.target.value})}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <div className="space-y-4">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block px-1">Overall Rating</label>
+                                        <StarRating 
+                                            rating={feedbackData.overall_rating} 
+                                            setRating={(val) => setFeedbackData({...feedbackData, overall_rating: val})} 
+                                            label="" 
+                                        />
+                                     </div>
+                                     <div className="flex items-end">
+                                        <button 
+                                            type="submit"
+                                            disabled={submittingFeedback}
+                                            className="w-full bg-gray-900 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-gray-800 transition-all shadow-xl shadow-gray-900/20 disabled:opacity-50"
+                                        >
+                                            {submittingFeedback ? 'Submitting...' : (
+                                                <>
+                                                    <Send size={18} />
+                                                    Submit Traceability Feedback
+                                                </>
+                                            )}
+                                        </button>
+                                     </div>
+                                </div>
+                            </div>
+                        </form>
+                    )}
+                </div>
             </div>
+            )}
 
             <footer className="mt-20 pt-10 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6 opacity-60">
                 <div className="flex items-center gap-3">

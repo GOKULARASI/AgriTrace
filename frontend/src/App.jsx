@@ -83,16 +83,6 @@ function App() {
               } 
             />
             <Route 
-              path="/feedback" 
-              element={
-                <AuthContext.Consumer>
-                  {({ user }) => (
-                    user ? <Layout><ConsumerFeedback /></Layout> : <ConsumerFeedback />
-                  )}
-                </AuthContext.Consumer>
-              } 
-            />
-            <Route 
               path="/track" 
               element={
                 <AuthContext.Consumer>

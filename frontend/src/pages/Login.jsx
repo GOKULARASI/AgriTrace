@@ -2,7 +2,8 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
-import { Leaf, Lock, Mail, User, MapPin, Phone, ArrowRight, Loader2 } from 'lucide-react';
+import { Leaf, Lock, Mail, User, MapPin, Phone, ArrowRight, Loader2, QrCode, X } from 'lucide-react';
+import QRScanner from './QRScanner';
 
 const Login = () => {
     const [isLogin, setIsLogin] = useState(true);
@@ -11,6 +12,7 @@ const Login = () => {
     const [formData, setFormData] = useState({
         name: '', email: '', password: '', role: 'Farmer', location: '', phone: ''
     });
+    const [showScanner, setShowScanner] = useState(false);
     const { login } = useContext(AuthContext);
     const navigate = useNavigate();
 
@@ -177,10 +179,35 @@ const Login = () => {
                             </button>
                         </form>
 
-                        <div className="mt-10 pt-6 border-t border-gray-100 text-center">
+                        <div className="mt-10 pt-6 border-t border-gray-100 text-center space-y-4">
+                            {!showScanner ? (
+                                <button 
+                                    onClick={() => setShowScanner(true)}
+                                    className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold py-4 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 border border-blue-200 group"
+                                >
+                                    <QrCode size={20} className="group-hover:rotate-12 transition-transform" />
+                                    Scan Your Product (Guest)
+                                </button>
+                            ) : (
+                                <div className="animate-in zoom-in duration-500 relative">
+                                    <button 
+                                        onClick={() => setShowScanner(false)}
+                                        className="absolute right-2 top-2 z-50 p-2 bg-gray-900 text-white rounded-full p-2 shadow-lg hover:scale-110 transition-transform"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                    <div className="bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 overflow-hidden">
+                                        <QRScanner isEmbedded={true} />
+                                    </div>
+                                    <p className="text-xs text-gray-400 mt-4 font-medium italic">
+                                        * Point your camera at the QR code or upload an image to verify instantly.
+                                    </p>
+                                </div>
+                            )}
+
                             <button 
                                 onClick={() => setIsLogin(!isLogin)} 
-                                className="text-gray-500 hover:text-green-600 font-semibold transition-colors flex items-center justify-center gap-1 mx-auto"
+                                className="text-gray-500 hover:text-green-600 font-semibold transition-colors flex items-center justify-center gap-1 mx-auto pt-2"
                             >
                                 {isLogin ? "New to AgriTrace? " : "Already have an account? "}
                                 <span className="text-green-600 underline">

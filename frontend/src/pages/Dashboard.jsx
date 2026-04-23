@@ -416,13 +416,58 @@ const Dashboard = () => {
                                             <div className="space-y-1">
                                                 <p className="text-gray-600 font-medium">Farmer: {p.farmerName}</p>
                                                 <p className="flex items-center text-gray-400 text-xs gap-1">
-                                                    <Clock size={12} /> Last update: {new Date(p.updatedAt).toLocaleDateString()}
+                                                    <Clock size={12} /> Registered: {new Date(p.created_at || p.createdAt).toLocaleDateString()}
                                                 </p>
                                             </div>
                                         </td>
                                         <td className="px-6 py-6">
-                                            <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
-                                                <QrCode size={12} /> Traceable
+                                            <div className="flex flex-col items-center gap-2">
+                                                    <Link 
+                                                        to={`/trace/${p.batchId || p.productId}`}
+                                                        className="p-2 bg-white rounded-xl shadow-md border border-gray-100 inline-block group-hover:scale-110 transition-transform duration-300 relative cursor-pointer"
+                                                        title="Click to view provenance report"
+                                                    >
+                                                        <QRCodeSVG 
+                                                            id={`qr-${p.productId}`}
+                                                            value={`${window.location.origin}/trace/${p.batchId || p.productId}`}
+                                                            size={80}
+                                                            level="H"
+                                                            marginSize={4}
+                                                            imageSettings={{
+                                                                src: "https://cdn-icons-png.flaticon.com/512/3061/3061558.png", 
+                                                                x: undefined,
+                                                                y: undefined,
+                                                                height: 20,
+                                                                width: 20,
+                                                                excavate: true,
+                                                            }}
+                                                        />
+                                                    </Link>
+                                                <button 
+                                                    onClick={() => {
+                                                        const svg = document.getElementById(`qr-${p.productId}`);
+                                                        const svgData = new XMLSerializer().serializeToString(svg);
+                                                        const canvas = document.createElement("canvas");
+                                                        const ctx = canvas.getContext("2d");
+                                                        const img = new Image();
+                                                        img.onload = () => {
+                                                            canvas.width = 300;
+                                                            canvas.height = 300;
+                                                            ctx.fillStyle = "white";
+                                                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                                            ctx.drawImage(img, 25, 25, 250, 250);
+                                                            const pngFile = canvas.toDataURL("image/png");
+                                                            const downloadLink = document.createElement("a");
+                                                            downloadLink.download = `QR-${p.productId}.png`;
+                                                            downloadLink.href = pngFile;
+                                                            downloadLink.click();
+                                                        };
+                                                        img.src = "data:image/svg+xml;base64," + btoa(svgData);
+                                                    }}
+                                                    className="text-[10px] font-bold text-gray-400 hover:text-green-600 transition-colors flex items-center gap-1"
+                                                >
+                                                    <RefreshCcw size={10} /> Download
+                                                </button>
                                             </div>
                                         </td>
                                         <td className="px-6 py-6">

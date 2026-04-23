@@ -3,13 +3,18 @@ const fs = require('fs');
 const path = require('path');
 const supabase = require('../services/supabaseClient');
 
+let contractWarningLogged = false;
+
 const getContract = () => {
     try {
         const contractPath = path.join(__dirname, '../config/contractAddress.json');
         const artifactPath = path.join(__dirname, '../config/SupplyChain.json');
         
         if (!fs.existsSync(contractPath) || !fs.existsSync(artifactPath)) {
-            console.error("Contract config files missing.");
+            if (!contractWarningLogged) {
+                console.warn("⚠️ Blockchain Contract configuration missing. Running in Database-only mode.");
+                contractWarningLogged = true;
+            }
             return null;
         }
 
@@ -22,7 +27,10 @@ const getContract = () => {
         
         return contract;
     } catch (e) {
-        console.error("Error init contract:", e);
+        if (!contractWarningLogged) {
+            console.error("Error init contract:", e);
+            contractWarningLogged = true;
+        }
         return null;
     }
 };
@@ -287,18 +295,41 @@ exports.getAllProducts = async (req, res) => {
         res.status(500).send('Server error');
     }
 };
-
 exports.traceProduct = async (req, res) => {
     try {
-        const batchId = req.params.batchId;
+        const { batchId } = req.params;
 
-        const { data: product, error: findError } = await supabase
+        // Try Batch ID lookup first
+        let { data: product, error: findError } = await supabase
             .from('products')
             .select('*')
             .eq('batch_id', batchId)
             .maybeSingle();
 
-        if (findError || !product) return res.status(404).json({ msg: 'Product not found' });
+        if (findError || !product) {
+            // Final fallback to the new product_tracking module
+            const { data: trackingAttempt, error: trackingError } = await supabase
+                .from('product_tracking')
+                .select('*')
+                .eq('product_id', batchId)
+                .maybeSingle();
+
+            if (trackingAttempt) {
+                product = {
+                    product_id: trackingAttempt.product_id,
+                    crop_name: trackingAttempt.product_name,
+                    quantity_text: "N/A",
+                    farmer_location: "N/A",
+                    current_status: trackingAttempt.status,
+                    created_at: trackingAttempt.created_at,
+                    batch_id: trackingAttempt.product_id
+                };
+            } else if (!trackingAttempt && (findError || trackingError)) {
+                return res.status(404).json({ msg: 'Product record not found in the decentralized ledger.' });
+            }
+        }
+
+        if (!product) return res.status(404).json({ msg: 'Product record not found in the decentralized ledger.' });
         
         const mappedProduct = {
             ...product,
